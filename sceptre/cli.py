@@ -20,6 +20,7 @@ import warnings
 import click
 import colorama
 import yaml
+import webbrowser
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import BotoCoreError, ClientError
 from jinja2.exceptions import TemplateError
@@ -95,7 +96,7 @@ def catch_exceptions(func):
         try:
             return func(*args, **kwargs)
         except (SceptreException, BotoCoreError, ClientError, Boto3Error,
-                TemplateError) as error:
+                TemplateError, webbrowser.Error) as error:
             write(error)
             sys.exit(1)
 
@@ -578,6 +579,27 @@ def get_stack_policy(ctx, environment, stack):
     response = env.stacks[stack].get_policy()
 
     write(response.get('StackPolicyBody', {}))
+
+
+@cli.command(name="estimate-template-cost")
+@stack_options
+@click.pass_context
+@catch_exceptions
+def estimate_template_cost(ctx, environment, stack):
+    """
+    Estimates the cost of the template.
+
+    Prints a URI that provides an estimated cost based on the resources\
+    in the stack.
+    """
+    env = get_env(ctx.obj["sceptre_dir"], environment, ctx.obj["options"])
+    response = env.stacks[stack].estimate_template_cost()
+
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        success_message = "View the  estimated cost at:\n\n"
+        modified_response = _remove_response_metadata(response)["Url"]
+        write(success_message + modified_response, 'str')
+        webbrowser.open(modified_response, new=2)
 
 
 @cli.group(name="init")

@@ -651,6 +651,32 @@ class Stack(object):
                 raise exp
         return status
 
+    def estimate_template_cost(self):
+        """
+        Estimates the stack's cost.
+
+        Attempts to open a web browser with the returned URL and
+        outputs the URL to the CLI.
+
+        :returns: An estimate of the stack's cost.
+        :rtype: dict
+        :raises: botocore.exceptions.ClientError
+        """
+        self.logger.debug("%s - Estimating template cost", self.name)
+        kwargs = {
+                "Parameters": self._format_parameters(self.parameters)
+            }
+        kwargs.update(self._get_template_details())
+        response = self.connection_manager.call(
+            service="cloudformation",
+            command="estimate_template_cost",
+            kwargs=kwargs
+            )
+        self.logger.debug(
+            "%s - Estimate stack cost response: %s", self.name, response
+        )
+        return response
+
     def _format_parameters(self, parameters):
         """
         Converts CloudFormation parameters to the format used by Boto3.
